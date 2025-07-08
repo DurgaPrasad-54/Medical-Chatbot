@@ -1,5 +1,4 @@
-// Verify.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
@@ -7,10 +6,38 @@ const Verify = () => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const tempToken = localStorage.getItem('tempToken');
+    if (!tempToken) {
+      navigate('/');
+    }
+  }, [navigate]);
+
+  const showMessage = (text, type = 'info') => {
+    setMessage(text);
+    setMessageType(type);
+    setTimeout(() => {
+      setMessage('');
+      setMessageType('');
+    }, 5000);
+  };
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
+
+    if (!otp.trim()) {
+      showMessage('Please enter the OTP', 'error');
+      return;
+    }
+
+    if (!/^\d{4,6}$/.test(otp)) {
+      showMessage('Enter a valid numeric OTP', 'error');
+      return;
+    }
+
     setLoading(true);
     setMessage('');
 
@@ -31,30 +58,28 @@ const Verify = () => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.removeItem('tempToken');
-        navigate('/chat');
+        showMessage('OTP verified successfully!', 'success');
+        setTimeout(() => {
+          navigate('/chat');
+        }, 1500);
       } else {
-        setMessage(data.message || 'Invalid OTP');
+        showMessage(data.message || 'Invalid OTP', 'error');
       }
     } catch (err) {
-      console.error(err);
-      setMessage('Network error. Please try again.');
+      console.error('OTP verification error:', err);
+      showMessage('Network error. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBack = () => {
-    localStorage.removeItem('tempToken');
-    localStorage.removeItem('userEmail');
-    navigate('/');
   };
 
   return (
     <div className="main">
       <div className="inner">
         <form className="form" onSubmit={handleVerifyOTP}>
-          <h1>Verify OTP</h1>
-          <div className="otp-container">
+          <h1 className="medchat-h1">Verify OTP</h1>
+
+          <div className="email-container">
             <input
               className="inp"
               type="text"
@@ -62,15 +87,37 @@ const Verify = () => {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               required
+              disabled={loading}
+              aria-describedby={message ? 'message' : undefined}
             />
-            <button type="submit" className="btn" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-            <button type="button" className="btn" onClick={handleBack}>
-              Back to Email
+
+            <button
+              type="submit"
+              className="btn"
+              disabled={loading || !otp.trim()}
+              aria-describedby={loading ? 'loading-text' : undefined}
+            >
+              {loading ? (
+                <>
+                  <div className="loading-spinner" />
+                  <span id="loading-text">Verifying...</span>
+                </>
+              ) : (
+                'Verify OTP'
+              )}
             </button>
           </div>
-          {message && <p className="message">{message}</p>}
+
+          {message && (
+            <div
+              id="message"
+              className={`message ${messageType}`}
+              role="alert"
+              aria-live="polite"
+            >
+              {message}
+            </div>
+          )}
         </form>
       </div>
     </div>

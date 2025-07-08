@@ -4,14 +4,9 @@ dotenv.config({path: '../.env'});
 
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-
-// Function to get chat response from Google Generative AI
 async function getChatResponse(userQuery) {
     try {
-        // Get the model - using the correct model name
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-        // Create system prompt for medical questions and greetings only
         const systemPrompt = `You are a specialized medical chatbot assistant. You should ONLY respond to:
 
 1. MEDICAL QUESTIONS: Provide informative and helpful responses about health and medical topics
