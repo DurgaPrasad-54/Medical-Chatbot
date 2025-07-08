@@ -1,134 +1,135 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import './Chat.css'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Chat.css';
 
 const Chat = () => {
-  const [messages, setMessages] = useState([])
-  const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [history, setHistory] = useState([])
-  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 768)
-  const navigate = useNavigate()
+  // State variables
+  const [messages, setMessages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 768);
 
+  const navigate = useNavigate();
+
+  // Effect: Check authentication and fetch history
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login')
+      navigate('/login');
     } else {
-      fetchHistory()
+      fetchHistory();
     }
 
-    const handleResize = () => {
-      setShowSidebar(window.innerWidth >= 768)
-    }
+    const handleResize = () => setShowSidebar(window.innerWidth >= 768);
+    window.addEventListener('resize', handleResize);
 
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [navigate])
+    return () => window.removeEventListener('resize', handleResize);
+  }, [navigate]);
 
-  const toggleSidebar = () => {
-    setShowSidebar(prev => !prev)
-  }
+  // Sidebar toggle
+  const toggleSidebar = () => setShowSidebar(prev => !prev);
 
+  // Fetch chat history
   const fetchHistory = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/history', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      const data = await res.json()
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
       if (res.ok) {
-        setHistory(data.history || [])
+        setHistory(data.history || []);
       } else {
-        console.error(data.message)
+        console.error(data.message);
       }
     } catch (err) {
-      console.error('Failed to fetch history:', err)
+      console.error('Failed to fetch history:', err);
     }
-  }
+  };
 
+  // Handle chat submission
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
-    setLoading(true)
-    setError('')
-    const userMessage = { type: 'user', text: query }
-    setMessages(prev => [...prev, userMessage])
+    e.preventDefault();
+    if (!query.trim()) return;
+
+    setLoading(true);
+    setError('');
+    const userMessage = { type: 'user', text: query };
+    setMessages(prev => [...prev, userMessage]);
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ query }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        const aiMessage = { type: 'ai', text: data.response }
-        setMessages(prev => [...prev, aiMessage])
-        setQuery('')
-        fetchHistory()
-      } else {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token')
-          navigate('/login')
-        } else {
-          setError(data.message || 'Error getting response')
-        }
-      }
-    } catch (error) {
-      setError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
-  }
-
-  const handleClearHistory = async () => {
-    if (!window.confirm('Are you sure you want to delete all chat history?')) return
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('http://localhost:5000/history', {
-        method: 'DELETE',
-        headers: {
           Authorization: `Bearer ${token}`,
         },
-      })
-      const data = await res.json()
-      if (res.ok) {
-        alert('History cleared')
-        setHistory([])
-        setMessages([])
-      } else {
-        alert(data.message || 'Failed to clear history.')
-      }
-    } catch (err) {
-      alert('Network error.')
-    }
-  }
+        body: JSON.stringify({ query }),
+      });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        const aiMessage = { type: 'ai', text: data.response };
+        setMessages(prev => [...prev, aiMessage]);
+        setQuery('');
+        fetchHistory();
+      } else {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        } else {
+          setError(data.message || 'Error getting response');
+        }
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  // Clear chat history
+  const handleClearHistory = async () => {
+    if (!window.confirm('Are you sure you want to delete all chat history?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/history', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('History cleared');
+        setHistory([]);
+        setMessages([]);
+      } else {
+        alert(data.message || 'Failed to clear history.');
+      }
+    } catch {
+      alert('Network error.');
+    }
+  };
+
+  // Load chat from history
   const handleHistoryClick = (item) => {
     setMessages([
       { type: 'user', text: item.query },
-      { type: 'ai', text: item.response }
-    ])
-  }
+      { type: 'ai', text: item.response },
+    ]);
+  };
 
-  const handleNewChat = () => {
-    setMessages([])
-  }
+  // Start a new chat
+  const handleNewChat = () => setMessages([]);
 
   return (
     <div className="app-layout">
@@ -141,7 +142,7 @@ const Chat = () => {
 
       {/* Sidebar */}
       {showSidebar && (
-        <div className="sidebar">
+        <aside className="sidebar">
           <h2>MedChat</h2>
           <button className="btn" onClick={handleNewChat}>+ New Chat</button>
           <button className="btn" onClick={handleClearHistory}>Clear History</button>
@@ -161,11 +162,11 @@ const Chat = () => {
             )}
           </div>
           <button className="btn logout" onClick={handleLogout}>Logout</button>
-        </div>
+        </aside>
       )}
 
-      {/* Main Chat */}
-      <div className="chat-main">
+      {/* Main Chat Area */}
+      <main className="chat-main">
         <div className="chat-messages">
           {messages.length === 0 ? (
             <div className="welcome-message">
@@ -204,9 +205,9 @@ const Chat = () => {
           </button>
         </form>
         {error && <div className="error-message">{error}</div>}
-      </div>
+      </main>
     </div>
-  )
-}
+  );
+};
 
-export default Chat
+export default Chat;
