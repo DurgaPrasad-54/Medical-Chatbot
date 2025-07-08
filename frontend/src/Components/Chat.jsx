@@ -1,28 +1,48 @@
-import {useState, useEffect} from 'react'
-import {useNavigate} from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import './Chat.css'
 
 const Chat = () => {
   const [messages, setMessages] = useState([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [history, setHistory] = useState([]) // for history sidebar
   const navigate = useNavigate()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) {
       navigate('/login')
+    } else {
+      fetchHistory()
     }
   }, [navigate])
+
+  const fetchHistory = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/history', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setHistory(data.history || [])
+      } else {
+        console.error(data.message)
+      }
+    } catch (err) {
+      console.error('Failed to fetch history:', err)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!query.trim()) return
-
     setLoading(true)
     setError('')
-
-    // Add user message to chat
     const userMessage = { type: 'user', text: query }
     setMessages(prev => [...prev, userMessage])
 
@@ -40,10 +60,10 @@ const Chat = () => {
       const data = await response.json()
 
       if (response.ok) {
-        // Add AI response to chat
         const aiMessage = { type: 'ai', text: data.response }
         setMessages(prev => [...prev, aiMessage])
         setQuery('')
+        fetchHistory() // refresh sidebar after new chat
       } else {
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem('token')
@@ -54,7 +74,6 @@ const Chat = () => {
       }
     } catch (error) {
       setError('Network error. Please try again.')
-      console.error('Error:', error)
     } finally {
       setLoading(false)
     }
@@ -65,64 +84,109 @@ const Chat = () => {
     navigate('/login')
   }
 
-  const goToHistory = () => {
-    navigate('/history')
+  const handleClearHistory = async () => {
+    if (!window.confirm('Are you sure you want to delete all chat history?')) return
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/history', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert('History cleared')
+        setHistory([])
+        setMessages([])
+      } else {
+        alert(data.message || 'Failed to clear history.')
+      }
+    } catch (err) {
+      alert('Network error.')
+    }
+  }
+
+  const handleHistoryClick = (item) => {
+    setMessages([
+      { type: 'user', text: item.query },
+      { type: 'ai', text: item.response }
+    ])
+  }
+
+  const handleNewChat = () => {
+    setMessages([])
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h1>MedChat Assistant</h1>
-        <div className="header-buttons">
-          <button onClick={goToHistory} className="btn">History</button>
-          <button onClick={handleLogout} className="btn">Logout</button>
+    <div className="app-layout">
+      {/* Sidebar */}
+      <div className="sidebar">
+        <h2>MedChat</h2>
+        <button className="btn" onClick={handleNewChat}>+ New Chat</button>
+         <button className="btn" onClick={handleClearHistory}>Clear History</button>
+
+        <div className="chat-history-list">
+          {history.length === 0 ? (
+            <p className="no-history">No chats yet</p>
+          ) : (
+            history.map((item, index) => (
+              <div
+                key={item._id || index}
+                className="history-item"
+                onClick={() => handleHistoryClick(item)}
+              >
+                🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
+              </div>
+            ))
+          )}
         </div>
+
+       
+        <button className="btn logout" onClick={handleLogout}>Logout</button>
       </div>
 
-      <div className="chat-messages">
-        {messages.length === 0 ? (
-          <div className="welcome-message">
-            <p>Welcome to MedChat! Ask me any medical or health-related questions.</p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div key={index} className={`message ${message.type}`}>
+      {/* Chat Area */}
+      <div className="chat-main">
+        <div className="chat-messages">
+          {messages.length === 0 ? (
+            <div className="welcome-message">
+              <p>Welcome to MedChat! Ask me any medical or health-related questions.</p>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <div key={index} className={`message ${message.type}`}>
+                <div className="message-content">
+                  <strong>{message.type === 'user' ? 'You' : 'MedChat'}: </strong>
+                  {message.text}
+                </div>
+              </div>
+            ))
+          )}
+          {loading && (
+            <div className="message ai">
               <div className="message-content">
-                {message.type === 'user' ? (
-                  <strong>You: </strong>
-                ) : (
-                  <strong>MedChat: </strong>
-                )}
-                {message.text}
+                <strong>MedChat: </strong>Thinking...
               </div>
             </div>
-          ))
-        )}
-        {loading && (
-          <div className="message ai">
-            <div className="message-content">
-              <strong>MedChat: </strong>
-              <span>Thinking...</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="chat-input-form">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Ask a medical question..."
+            className="chat-input"
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading || !query.trim()} className="btn">
+            {loading ? 'Sending...' : 'Send'}
+          </button>
+        </form>
+        {error && <div className="error-message">{error}</div>}
       </div>
-
-      <form onSubmit={handleSubmit} className="chat-input-form">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask a medical question..."
-          className="chat-input"
-          disabled={loading}
-        />
-        <button type="submit" disabled={loading || !query.trim()} className="btn">
-          {loading ? 'Sending...' : 'Send'}
-        </button>
-      </form>
-
-      {error && <div className="error-message">{error}</div>}
     </div>
   )
 }
