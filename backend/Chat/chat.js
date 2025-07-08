@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI("AIzaSyD4trK5iaqukmNRl1GyHcwDXrSIhcXJZIs");
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 async function getChatResponse(userQuery) {
     try {
