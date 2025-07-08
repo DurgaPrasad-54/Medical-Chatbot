@@ -3,6 +3,7 @@ import './App.css'
 import Login from './Components/Login'
 import Chat from './Components/Chat'
 import History from './Components/History'
+import Verify from './Components/verify'
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify" element={<Verify />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/history" element={<History />} />
         <Route path="*" element={<Navigate to="/" replace />} />
