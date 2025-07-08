@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const { User, History } = require('./Models/Model');
 const sendMail = require('./Mail/Mail');
 const verify = require('./Verification/verify');
+const  {getChatResponse}  = require('./Chat/chat');
 dotenv.config();
 
 // Connect to MongoDB
@@ -80,6 +81,55 @@ app.post('/verify',verify,  async (req, res) => {
 })
 
 //Chat End point
+app.post('/chat',verify, async(req,res)=>{
+    const userId = req.user.userId;
+    const { query} = req.body
+    try{
+        const response = await getChatResponse(query);
+        if(response){
+            const chatHistory = await History.create({userId: userId, query:query, response: response});
+            if(chatHistory){
+                return res.status(200).json({ message: "Chat response generated successfully", response: response });
+            } else {
+                return res.status(500).json({ message: "Error saving chat history" });
+            }   
+        }
+    }
+    catch (error) {
+        console.error("Error in chat:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+})
+//History End Point
+app.get('/history', verify, async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        const history = await History.find({ userId: userId }).sort({ createdAt: -1 });
+        if (history) {
+            return res.status(200).json({ message: "History retrieved successfully", history: history });
+        } else {
+            return res.status(404).json({ message: "No history found" });
+        }
+    } catch (error) {
+        console.error("Error retrieving history:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}); 
+//Delete History End Point
+app.delete('/history', verify, async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        const deletedHistory = await History.deleteMany({userId: userId });
+        if (deletedHistory) {
+            return res.status(200).json({ message: "History deleted successfully" });
+        } else {
+            return res.status(404).json({ message: "History not found" });
+        }
+    } catch (error) {
+        console.error("Error deleting history:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 app.listen(5000, () => {
     console.log("Server is running on port 5000");
