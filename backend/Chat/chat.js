@@ -9,7 +9,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 async function getChatResponse(userQuery) {
     try {
         // Get the model - using the correct model name
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         // Create system prompt for medical questions and greetings only
         const systemPrompt = `You are a specialized medical chatbot assistant. You should ONLY respond to:
