@@ -7,7 +7,8 @@ const Chat = () => {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [history, setHistory] = useState([]) // for history sidebar
+  const [history, setHistory] = useState([])
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 768)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -17,7 +18,18 @@ const Chat = () => {
     } else {
       fetchHistory()
     }
+
+    const handleResize = () => {
+      setShowSidebar(window.innerWidth >= 768)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [navigate])
+
+  const toggleSidebar = () => {
+    setShowSidebar(prev => !prev)
+  }
 
   const fetchHistory = async () => {
     try {
@@ -63,7 +75,7 @@ const Chat = () => {
         const aiMessage = { type: 'ai', text: data.response }
         setMessages(prev => [...prev, aiMessage])
         setQuery('')
-        fetchHistory() // refresh sidebar after new chat
+        fetchHistory()
       } else {
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem('token')
@@ -120,33 +132,39 @@ const Chat = () => {
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
-      <div className="sidebar">
-        <h2>MedChat</h2>
-        <button className="btn" onClick={handleNewChat}>+ New Chat</button>
-         <button className="btn" onClick={handleClearHistory}>Clear History</button>
-
-        <div className="chat-history-list">
-          {history.length === 0 ? (
-            <p className="no-history">No chats yet</p>
-          ) : (
-            history.map((item, index) => (
-              <div
-                key={item._id || index}
-                className="history-item"
-                onClick={() => handleHistoryClick(item)}
-              >
-                🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
-              </div>
-            ))
-          )}
-        </div>
-
-       
-        <button className="btn logout" onClick={handleLogout}>Logout</button>
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
+          {showSidebar ? 'Hide Menu' : '☰ Menu'}
+        </button>
       </div>
 
-      {/* Chat Area */}
+      {/* Sidebar */}
+      {showSidebar && (
+        <div className="sidebar">
+          <h2>MedChat</h2>
+          <button className="btn" onClick={handleNewChat}>+ New Chat</button>
+          <button className="btn" onClick={handleClearHistory}>Clear History</button>
+          <div className="chat-history-list">
+            {history.length === 0 ? (
+              <p className="no-history">No chats yet</p>
+            ) : (
+              history.map((item, index) => (
+                <div
+                  key={item._id || index}
+                  className="history-item"
+                  onClick={() => handleHistoryClick(item)}
+                >
+                  🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
+                </div>
+              ))
+            )}
+          </div>
+          <button className="btn logout" onClick={handleLogout}>Logout</button>
+        </div>
+      )}
+
+      {/* Main Chat */}
       <div className="chat-main">
         <div className="chat-messages">
           {messages.length === 0 ? (
