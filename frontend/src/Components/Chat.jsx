@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Chat.css';
+// import './Chat.css';
+import "./Login.css"; // Reuse the same styles
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
