@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import './Chat.css';
-import "./Login.css"; // Reuse the same styles
+import {
+  FiMenu, FiPlus, FiTrash2, FiMessageSquare, FiLogOut,
+  FiSend, FiUser, FiMoreHorizontal, FiActivity
+} from 'react-icons/fi';
+import { MdMedicalServices } from 'react-icons/md';
+import { RiRobot2Line } from 'react-icons/ri';
+import './Chat.css';
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -10,24 +15,19 @@ const Chat = () => {
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 768);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-    } else {
-      fetchHistory();
-    }
+    if (!token) return navigate('/login');
+    fetchHistory();
 
-    const handleResize = () => setShowSidebar(window.innerWidth >= 768);
+    const handleResize = () => {
+      setShowSidebar(window.innerWidth >= 768);
+    };
     window.addEventListener('resize', handleResize);
-
     return () => window.removeEventListener('resize', handleResize);
-  }, [navigate]);
-
-  const toggleSidebar = () => setShowSidebar(prev => !prev);
+  }, []);
 
   const fetchHistory = async () => {
     try {
@@ -36,13 +36,9 @@ const Chat = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (res.ok) {
-        setHistory(data.history || []);
-      } else {
-        console.error(data.message);
-      }
+      if (res.ok) setHistory(data.history || []);
     } catch (err) {
-      console.error('Failed to fetch history:', err);
+      console.error('Fetch history error:', err);
     }
   };
 
@@ -50,14 +46,15 @@ const Chat = () => {
     e.preventDefault();
     if (!query.trim()) return;
 
+    const userMessage = { type: 'user', text: query };
+    setMessages((prev) => [...prev, userMessage]);
+    setQuery('');
     setLoading(true);
     setError('');
-    const userMessage = { type: 'user', text: query };
-    setMessages(prev => [...prev, userMessage]);
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/chat', {
+      const res = await fetch('http://localhost:5000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,27 +62,28 @@ const Chat = () => {
         },
         body: JSON.stringify({ query }),
       });
+      const data = await res.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (res.ok) {
         const aiMessage = { type: 'ai', text: data.response };
-        setMessages(prev => [...prev, aiMessage]);
-        setQuery('');
+        setMessages((prev) => [...prev, aiMessage]);
         fetchHistory();
+      } else if (res.status === 401) {
+        navigate('/login');
       } else {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token');
-          navigate('/login');
-        } else {
-          setError(data.message || 'Error getting response');
-        }
+        setError(data.message || 'Something went wrong');
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError('Network error occurred');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setQuery('');
+    setError('');
   };
 
   const handleLogout = () => {
@@ -101,44 +99,29 @@ const Chat = () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
       if (res.ok) {
-        alert('History cleared');
         setHistory([]);
         setMessages([]);
-      } else {
-        alert(data.message || 'Failed to clear history.');
       }
     } catch {
-      alert('Network error.');
+      alert('Network error occurred');
     }
   };
 
   const handleDeleteItem = async (id, e) => {
     e.stopPropagation();
     if (!window.confirm('Delete this chat?')) return;
-
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/history/${id}`, {
+      const res = await fetch(`http://localhost:5000/history/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setHistory(prev => prev.filter(item => item._id !== id));
-        if (messages.length > 0 && messages[0].text === data.query) {
-          setMessages([]);
-        }
-      } else {
-        alert(data.message || 'Failed to delete chat.');
+      if (res.ok) {
+        setHistory((prev) => prev.filter((item) => item._id !== id));
       }
     } catch {
-      alert('Network error while deleting chat.');
+      alert('Network error occurred');
     }
   };
 
@@ -147,74 +130,88 @@ const Chat = () => {
       { type: 'user', text: item.query },
       { type: 'ai', text: item.response },
     ]);
+    if (window.innerWidth < 768) setShowSidebar(false);
   };
-
-  const handleNewChat = () => setMessages([]);
 
   return (
     <div className="app-layout">
       {/* Mobile Header */}
       <div className="mobile-header">
-        <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
-          {showSidebar ? 'Hide Menu' : '☰ Menu'}
+        <button className="icon-btn" onClick={() => setShowSidebar(!showSidebar)}>
+          <FiMenu />
         </button>
+        <div className="mobile-title">
+          <MdMedicalServices />
+          <span>MedChat</span>
+        </div>
       </div>
 
       {/* Sidebar */}
-      {showSidebar && (
-        <aside className="sidebar">
-          <h2>MedChat</h2>
-          <button className="btn" onClick={handleNewChat}>+ New Chat</button>
-          <button className="btn" onClick={handleClearHistory}>Clear History</button>
-          <div className="chat-history-list">
-            {history.length === 0 ? (
-              <p className="no-history">No chats yet</p>
-            ) : (
-              history.map((item, index) => (
-                <div
-                  key={item._id || index}
-                  className="history-item"
-                  onClick={() => handleHistoryClick(item)}
-                >
-                  <span className="history-text">
-                    🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
-                  </span>
-                  <button
-                    className="delete-icon"
-                    onClick={(e) => handleDeleteItem(item._id, e)}
-                    title="Delete this chat"
-                  >
-                    🗑
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-          <button className="btn logout" onClick={handleLogout}>Logout</button>
-        </aside>
-      )}
+      <aside className={`sidebar ${showSidebar ? 'show' : ''}`}>
+        <div className="sidebar-header">
+          <MdMedicalServices />
+          <span>MedChat</span>
+        </div>
 
-      {/* Main Chat Area */}
+        <button onClick={handleNewChat} className="btn">
+          <FiPlus /> New Chat
+        </button>
+        <button onClick={handleClearHistory} className="btn danger">
+          <FiTrash2 /> Clear History
+        </button>
+
+        <div className="history-list">
+          {history.length === 0 ? (
+            <p>No chat history</p>
+          ) : (
+            history.map((item) => (
+              <div key={item._id} className="history-item" onClick={() => handleHistoryClick(item)}>
+                <FiMessageSquare />
+                <span>{item.query.slice(0, 25)}...</span>
+                <button className="delete-btn" onClick={(e) => handleDeleteItem(item._id, e)}>
+                  <FiTrash2 />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <button onClick={handleLogout} className="btn logout">
+          <FiLogOut /> Logout
+        </button>
+      </aside>
+
+      {/* Chat Area */}
       <main className="chat-main">
         <div className="chat-messages">
           {messages.length === 0 ? (
             <div className="welcome-message">
-              <p>Welcome to MedChat! Ask me any medical or health-related questions.</p>
+              {/* <MdMedicalServices /> */}
+              <h3>Welcome to MedChat</h3>
+              <p>Ask your medical questions to begin</p>
             </div>
           ) : (
-            messages.map((message, index) => (
-              <div key={index} className={`message ${message.type}`}>
-                <div className="message-content">
-                  <strong>{message.type === 'user' ? 'You' : 'MedChat'}: </strong>
-                  {message.text}
+            messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.type}`}>
+                <div className="avatar">{msg.type === 'user' ? <FiUser /> : <RiRobot2Line />}</div>
+                <div className="content">
+                  <div className="sender">{msg.type === 'user' ? 'You' : 'MedChat'}</div>
+                  <div className="text">{msg.text}</div>
                 </div>
               </div>
             ))
           )}
+
           {loading && (
             <div className="message ai">
-              <div className="message-content">
-                <strong>MedChat: </strong>Thinking...
+              <div className="avatar">
+                <RiRobot2Line />
+              </div>
+              <div className="content">
+                <div className="sender">MedChat</div>
+                <div className="text typing">
+                  <FiMoreHorizontal /> Thinking...
+                </div>
               </div>
             </div>
           )}
@@ -225,15 +222,14 @@ const Chat = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask a medical question..."
-            className="chat-input"
-            disabled={loading}
+            placeholder="Type your medical query..."
           />
-          <button type="submit" disabled={loading || !query.trim()} className="btn">
-            {loading ? 'Sending...' : 'Send'}
+          <button type="submit" disabled={loading || !query.trim()}>
+            {loading ? <FiActivity className="loading" /> : <FiSend />}
           </button>
         </form>
-        {error && <div className="error-message">{error}</div>}
+
+        {error && <div className="error"><FiActivity /> {error}</div>}
       </main>
     </div>
   );
