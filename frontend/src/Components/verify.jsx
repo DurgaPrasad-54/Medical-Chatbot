@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Verify = () => {
+  const API_URL = import.meta.env.VITE_API_URL;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -10,6 +11,7 @@ const Verify = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    
     const tempToken = localStorage.getItem('tempToken');
     if (!tempToken) {
       navigate('/');
@@ -44,7 +46,7 @@ const Verify = () => {
     const tempToken = localStorage.getItem('tempToken');
 
     try {
-      const response = await fetch('http://localhost:5000/verify', {
+      const response = await fetch(`${API_URL}/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
