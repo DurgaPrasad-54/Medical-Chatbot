@@ -14,7 +14,7 @@ This is a fullstack medical chatbot application built with React, Node.js, and G
 # Backend
 cd backend
 npm install
-npm run dev
+npm start
 
 # Frontend
 cd frontend
