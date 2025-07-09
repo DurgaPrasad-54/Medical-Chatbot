@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './Chat.css';
 
 const Chat = () => {
-  // State variables
   const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,7 +12,6 @@ const Chat = () => {
 
   const navigate = useNavigate();
 
-  // Effect: Check authentication and fetch history
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -28,10 +26,8 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [navigate]);
 
-  // Sidebar toggle
   const toggleSidebar = () => setShowSidebar(prev => !prev);
 
-  // Fetch chat history
   const fetchHistory = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -49,7 +45,6 @@ const Chat = () => {
     }
   };
 
-  // Handle chat submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -92,13 +87,11 @@ const Chat = () => {
     }
   };
 
-  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
   };
 
-  // Clear chat history
   const handleClearHistory = async () => {
     if (!window.confirm('Are you sure you want to delete all chat history?')) return;
     try {
@@ -120,7 +113,34 @@ const Chat = () => {
     }
   };
 
-  // Load chat from history
+  const handleDeleteItem = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this chat?')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/history/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setHistory(prev => prev.filter(item => item._id !== id));
+        if (messages.length > 0 && messages[0].text === data.query) {
+          setMessages([]);
+        }
+      } else {
+        alert(data.message || 'Failed to delete chat.');
+      }
+    } catch {
+      alert('Network error while deleting chat.');
+    }
+  };
+
   const handleHistoryClick = (item) => {
     setMessages([
       { type: 'user', text: item.query },
@@ -128,7 +148,6 @@ const Chat = () => {
     ]);
   };
 
-  // Start a new chat
   const handleNewChat = () => setMessages([]);
 
   return (
@@ -156,7 +175,16 @@ const Chat = () => {
                   className="history-item"
                   onClick={() => handleHistoryClick(item)}
                 >
-                  🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
+                  <span className="history-text">
+                    🗨 {item.query.length > 30 ? item.query.slice(0, 30) + '...' : item.query}
+                  </span>
+                  <button
+                    className="delete-icon"
+                    onClick={(e) => handleDeleteItem(item._id, e)}
+                    title="Delete this chat"
+                  >
+                    🗑
+                  </button>
                 </div>
               ))
             )}

@@ -131,6 +131,23 @@ app.delete('/history', verify, async (req, res) => {
     }
 });
 
+//Delete Specific History End Point
+app.delete('/history/:id', verify, async (req, res) => {
+    const userId = req.user.userId;
+    const historyId = req.params.id;
+    try {
+        const deletedHistory = await History.findOneAndDelete({ _id: historyId, userId: userId });
+        if (deletedHistory) {
+            return res.status(200).json({ message: "History item deleted successfully" });
+        } else {
+            return res.status(404).json({ message: "History item not found" });
+        }
+    } catch (error) {
+        console.error("Error deleting history item:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 app.listen(5000, () => {
     console.log("Server is running on port 5000");
 });
