@@ -135,6 +135,8 @@
 .message {
   display: flex;
   max-width: 100%;
+  text-align: left;
+
 }
 
 .message.user {
@@ -160,8 +162,8 @@
 }
 
 .message.ai .content {
-  background: #ecfdf5;
-  color: #065f46;
+  background: #dbeafe;
+  color: #1e3a8a;
 }
 
 .typing {

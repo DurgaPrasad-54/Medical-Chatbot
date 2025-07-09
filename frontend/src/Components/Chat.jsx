@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiMenu, FiPlus, FiTrash2, FiLogOut,
@@ -15,10 +15,10 @@ const Chat = () => {
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 768);
+  const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    
     const token = localStorage.getItem('token');
     if (!token) return navigate('/login');
     fetchHistory();
@@ -29,6 +29,12 @@ const Chat = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, loading]);
 
   const fetchHistory = async () => {
     try {
@@ -118,8 +124,19 @@ const Chat = () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.ok) {
+        const deletedItem = history.find((item) => item._id === id);
         setHistory((prev) => prev.filter((item) => item._id !== id));
+
+        if (
+          deletedItem &&
+          messages.length >= 2 &&
+          messages[0].text === deletedItem.query &&
+          messages[1].text === deletedItem.response
+        ) {
+          setMessages([]);
+        }
       }
     } catch {
       alert('Network error occurred');
@@ -203,6 +220,9 @@ const Chat = () => {
               </div>
             </div>
           )}
+
+          {/* Auto-scroll target element */}
+          <div ref={messagesEndRef} />
         </div>
 
         <form onSubmit={handleSubmit} className="chat-input-form">
