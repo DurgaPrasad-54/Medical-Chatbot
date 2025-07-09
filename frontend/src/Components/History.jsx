@@ -1,160 +1,132 @@
-import {useState, useEffect} from 'react'
-import {useNavigate} from 'react-router-dom'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Chat.css'; // Reuse the same styles
 
 const History = () => {
-  const [history, setHistory] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const navigate = useNavigate()
+  const [history, setHistory] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login')
-      return
+      navigate('/login');
+    } else {
+      fetchHistory();
     }
-    fetchHistory()
-  }, [navigate])
+  }, [navigate]);
 
   const fetchHistory = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/history', {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/history', {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setHistory(data.history || [])
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHistory(data.history || []);
       } else {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token')
-          navigate('/login')
-        } else {
-          setError(data.message || 'Error fetching history')
-        }
+        alert(data.message || 'Failed to fetch history');
       }
     } catch (error) {
-      setError('Network error. Please try again.')
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error fetching history:', error);
+      alert('Network error. Please try again.');
     }
-  }
+  };
 
-  const handleDeleteHistory = async () => {
-    if (!window.confirm('Are you sure you want to delete all chat history?')) {
-      return
-    }
-
-    setDeleteLoading(true)
+  const handleDeleteSingle = async (id) => {
+    if (!window.confirm('Delete this conversation?')) return;
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/history', {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/history/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setHistory([])
-        alert('History deleted successfully')
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHistory(history.filter(item => item._id !== id));
       } else {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('token')
-          navigate('/login')
-        } else {
-          setError(data.message || 'Error deleting history')
-        }
+        alert(data.message || 'Failed to delete conversation');
       }
     } catch (error) {
-      setError('Network error. Please try again.')
-      console.error('Error:', error)
-    } finally {
-      setDeleteLoading(false)
+      console.error('Error deleting conversation:', error);
+      alert('Network error. Please try again.');
     }
-  }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to delete all chat history?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/history', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('History cleared successfully');
+        setHistory([]);
+      } else {
+        alert(data.message || 'Failed to clear history');
+      }
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      alert('Network error. Please try again.');
+    }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
-  }
-
-  const goToChat = () => {
-    navigate('/chat')
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
-  }
-
-  if (loading) {
-    return (
-      <div className="history-container">
-        <div className="history-header">
-          <h1>Chat History</h1>
-        </div>
-        <div className="loading">Loading history...</div>
-      </div>
-    )
-  }
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
   return (
-    <div className="history-container">
-      <div className="history-header">
-        <h1>Chat History</h1>
-        <div className="header-buttons">
-          <button onClick={goToChat} className="btn">Back to Chat</button>
-          {history.length > 0 && (
-            <button 
-              onClick={handleDeleteHistory} 
-              disabled={deleteLoading}
-              className="btn delete-btn"
-            >
-              {deleteLoading ? 'Deleting...' : 'Clear History'}
-            </button>
-          )}
-          <button onClick={handleLogout} className="btn">Logout</button>
-        </div>
-      </div>
+    <div className="app-layout">
+      <aside className="sidebar">
+        <h2>Chat History</h2>
+        <button className="btn" onClick={() => navigate('/chat')}>← Back to Chat</button>
+        <button className="btn" onClick={handleClearAll}>Clear All History</button>
 
-      <div className="history-content">
-        {error && <div className="error-message">{error}</div>}
-        
-        {history.length === 0 ? (
-          <div className="no-history">
-            <p>No chat history found. Start a conversation to see your history here.</p>
-          </div>
-        ) : (
-          <div className="history-list">
-            {history.map((item, index) => (
+        <div className="chat-history-list">
+          {history.length === 0 ? (
+            <p className="no-history">No chats found</p>
+          ) : (
+            history.map((item, index) => (
               <div key={item._id || index} className="history-item">
-                <div className="history-timestamp">
-                  {formatDate(item.createdAt)}
+                <div
+                  className="history-text"
+                  onClick={() =>
+                    navigate('/chat', {
+                      state: {
+                        query: item.query,
+                        response: item.response,
+                      },
+                    })
+                  }
+                >
+                  🗨 {item.query.length > 40 ? item.query.slice(0, 40) + '...' : item.query}
                 </div>
-                <div className="history-query">
-                  <strong>You: </strong>
-                  {item.query}
-                </div>
-                <div className="history-response">
-                  <strong>MedChat: </strong>
-                  {item.response}
-                </div>
+                <button className="delete-icon" onClick={() => handleDeleteSingle(item._id)}>🗑</button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+            ))
+          )}
+        </div>
 
-export default History
+        <button className="btn logout" onClick={handleLogout}>Logout</button>
+      </aside>
+
+      <main className="chat-main">
+        <div className="welcome-message">
+          <p>Select a chat from the sidebar to view or continue the conversation.</p>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default History;
