@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiMenu, FiPlus, FiTrash2, FiLogOut,
-  FiSend, FiMoreHorizontal
+  FiSend, FiMoreHorizontal, FiX
 } from 'react-icons/fi';
 import { MdMedicalServices } from 'react-icons/md';
 import './Chat.css';
@@ -29,6 +29,22 @@ const Chat = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        showSidebar &&
+        window.innerWidth < 768 &&
+        !e.target.closest('.sidebar') &&
+        !e.target.closest('.icon-btn')
+      ) {
+        setShowSidebar(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSidebar]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -91,6 +107,7 @@ const Chat = () => {
     setMessages([]);
     setQuery('');
     setError('');
+    if (window.innerWidth < 768) setShowSidebar(false); // ✅ Close on mobile
   };
 
   const handleLogout = () => {
@@ -109,6 +126,7 @@ const Chat = () => {
       if (res.ok) {
         setHistory([]);
         setMessages([]);
+        if (window.innerWidth < 768) setShowSidebar(false); // ✅ Close on mobile
       }
     } catch {
       alert('Network error occurred');
@@ -137,6 +155,8 @@ const Chat = () => {
         ) {
           setMessages([]);
         }
+
+        if (window.innerWidth < 768) setShowSidebar(false); // ✅ Close on mobile
       }
     } catch {
       alert('Network error occurred');
@@ -148,14 +168,14 @@ const Chat = () => {
       { type: 'user', text: item.query },
       { type: 'ai', text: item.response },
     ]);
-    if (window.innerWidth < 768) setShowSidebar(false);
+    if (window.innerWidth < 768) setShowSidebar(false); // ✅ Close on mobile
   };
 
   return (
     <div className="app-layout">
       <div className="mobile-header">
         <button className="icon-btn" onClick={() => setShowSidebar(!showSidebar)}>
-          <FiMenu />
+          {showSidebar ? <FiX /> : <FiMenu />}
         </button>
         <div className="mobile-title">
           <MdMedicalServices />
@@ -221,7 +241,6 @@ const Chat = () => {
             </div>
           )}
 
-          {/* Auto-scroll target element */}
           <div ref={messagesEndRef} />
         </div>
 
