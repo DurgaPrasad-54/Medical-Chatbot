@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
+  const API_URL = import.meta.env.VITE_API_URL;
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -11,6 +12,7 @@ const Login = () => {
 
   // Check if user is already logged in
   useEffect(() => {
+    
     const token = localStorage.getItem('token');
     if (token) {
       navigate('/chat');
@@ -48,7 +50,7 @@ const Login = () => {
     setMessage('');
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
