@@ -6,17 +6,27 @@ const Verify = () => {
   const API_URL = import.meta.env.VITE_API_URL;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    
     const tempToken = localStorage.getItem('tempToken');
     if (!tempToken) {
       navigate('/');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resendCooldown]);
 
   const showMessage = (text, type = 'info') => {
     setMessage(text);
@@ -41,8 +51,6 @@ const Verify = () => {
     }
 
     setLoading(true);
-    setMessage('');
-
     const tempToken = localStorage.getItem('tempToken');
 
     try {
@@ -75,6 +83,37 @@ const Verify = () => {
     }
   };
 
+  const handleResendOTP = async () => {
+    const email = localStorage.getItem('userEmail');
+    if (!email) return;
+
+    setResendLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('tempToken', data.token);
+        showMessage('OTP resent successfully!', 'success');
+        setResendCooldown(30); // 30 second cooldown
+      } else {
+        showMessage(data.message || 'Failed to resend OTP.', 'error');
+      }
+    } catch (err) {
+      console.error('Resend OTP error:', err);
+      showMessage('Network error. Please try again.', 'error');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <div className="main">
       <div className="inner">
@@ -90,19 +129,28 @@ const Verify = () => {
               onChange={(e) => setOtp(e.target.value)}
               required
               disabled={loading}
-              aria-describedby={message ? 'message' : undefined}
             />
+
+            <p
+              onClick={resendCooldown === 0 && !resendLoading ? handleResendOTP : undefined}
+              className={`resend-link ${resendCooldown > 0 || resendLoading ? 'disabled' : ''}`}
+            >
+              {resendCooldown > 0
+                ? `Resend OTP in ${resendCooldown}s`
+                : resendLoading
+                ? 'Resending...'
+                : 'Resend OTP'}
+            </p>
 
             <button
               type="submit"
               className="btn"
               disabled={loading || !otp.trim()}
-              aria-describedby={loading ? 'loading-text' : undefined}
             >
               {loading ? (
                 <>
                   <div className="loading-spinner" />
-                  <span id="loading-text">Verifying...</span>
+                  <span>Verifying...</span>
                 </>
               ) : (
                 'Verify OTP'
@@ -112,7 +160,6 @@ const Verify = () => {
 
           {message && (
             <div
-              id="message"
               className={`message ${messageType}`}
               role="alert"
               aria-live="polite"
