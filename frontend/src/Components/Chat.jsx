@@ -8,6 +8,7 @@ import { MdMedicalServices } from 'react-icons/md';
 import './Chat.css';
 
 const Chat = () => {
+  const token = localStorage.getItem('token');
   const API_URL = import.meta.env.VITE_API_URL;
   const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState('');
@@ -18,8 +19,13 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
+  if(!token){
+    navigate('/login');
+    return null; 
+  }
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    
     if (!token) return navigate('/login');
     fetchHistory();
 
