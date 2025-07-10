@@ -258,6 +258,7 @@ const Chat = () => {
 
         {error && <div className="error">{error}</div>}
       </main>
+      
     </div>
   );
 };
