@@ -75,6 +75,22 @@
 .inp::placeholder {
   color: var(--secondary-400);
 }
+.resend-link {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #1e40af;
+  text-decoration: underline;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.3s;
+}
+
+.resend-link.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  text-decoration: none;
+}
+
 
 .btn {
   padding: var(--spacing-md) var(--spacing-lg);
