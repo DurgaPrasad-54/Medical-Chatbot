@@ -1,6 +1,6 @@
 # MedChat - AI Medical Chatbot
 
-This is a fullstack medical chatbot application built with React, Node.js, and Google Gemini AI.
+This is a fullstack medical chatbot application built with React, Express.js, and Google Gemini AI.
 
 ## Features
 
