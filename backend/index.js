@@ -5,7 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { User, History } = require('./Models/Model');
 const sendMail = require('./Mail/Mail');
-const verify = require('./Verification/verify');
+const verify = require('./Auth/Auth');
 const { getChatResponse } = require('./Chat/chat');
 
 dotenv.config();
