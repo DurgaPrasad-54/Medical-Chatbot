@@ -20,3 +20,8 @@ npm start
 cd frontend
 npm install
 npm run dev
+
+# Deployement Link
+
+
+https://medchat-liard.vercel.app
