@@ -44,7 +44,9 @@ app.post('/login', async (req, res) => {
                 );
 
                 sendMail(email, "Your OTP for MedChat login", `Your OTP is ${otp}. It is valid for 15 minutes.`);
+                console.log("OTP sent to existing user");
                 return res.status(200).json({ message: "OTP sent successfully", token });
+                
             }
 
             return res.status(500).json({ message: "Error updating user" });
@@ -58,6 +60,7 @@ app.post('/login', async (req, res) => {
             );
 
             sendMail(email, "Your OTP for MedChat login", `Your OTP is ${otp}. It is valid for 15 minutes.`);
+            console.log("OTP sent to new user");
             return res.status(200).json({ message: "OTP sent successfully", token });
         }
     } catch (error) {
