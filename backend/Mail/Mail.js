@@ -1,31 +1,26 @@
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
-dotenv.config();
-
+require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASS
-    }
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASS 
+  }
 });
 
-function sendMail(to, subject, text) {
-    const mailOptions = {
-        from: process.env.EMAIL,
-        to: to,
-        subject: subject,
-        text: text
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log('Error sending email:', error);
-        } else {
-            console.log('Email sent:', info.response);
-        }
+const sendEmail = async (to, subject, text) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"MedChat" <${process.env.EMAIL}>`,
+      to,
+      subject,
+      text
     });
-}
+    console.log("✅ Email sent:", info.response);
+  } catch (err) {
+    console.error("❌ Email send error:", err);
+  }
+};
 
-module.exports = sendMail;
+module.exports = sendEmail;
