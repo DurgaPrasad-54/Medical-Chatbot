@@ -1,29 +1,31 @@
-const axios = require('axios');
+const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 dotenv.config();
 
-async function sendMail(to, subject, text) {
-  try {
-    const response = await axios.post(
-      'https://api.resend.com/emails',
-      {
-        from: process.env.EMAIL, // your verified email in Resend
-        to,
-        subject,
-        html: `<h3>${subject}</h3><p>${text}</p>`,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
 
-    console.log('Email sent successfully:', response.data);
-  } catch (error) {
-    console.error('Email send error:', error.response?.data || error.message);
-  }
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+function sendMail(to, subject, text) {
+    const mailOptions = {
+        from: process.env.EMAIL,
+        to: to,
+        subject: subject,
+        text: text
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Error sending email:', error);
+        } else {
+            console.log('Email sent:', info.response);
+        }
+    });
 }
 
 module.exports = sendMail;
