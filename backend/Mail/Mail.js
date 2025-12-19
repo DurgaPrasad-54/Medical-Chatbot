@@ -1,33 +1,32 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-const mail = process.env.MAIL;
-const pass = process.env.PASSWORD;
-
 const transport = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
   auth: {
-    user: mail,
-    pass: pass,
+    user: process.env.BREVO_SMTP_USER, // your email
+    pass: process.env.BREVO_SMTP_KEY,  // SMTP key
   },
 });
 
 async function sendMail(to, subject, text) {
   try {
-    const mailoptions = {
-      from: mail,
-      to: to,
-      subject: subject,
-      text: text,
+    const mailOptions = {
+      from: `"My App" <${process.env.BREVO_SMTP_USER}>`,
+      to,
+      subject,
+      text,
     };
-    const result = await transport.sendMail(mailoptions);
-    console.log("mail sent:", result.response);
+
+    const result = await transport.sendMail(mailOptions);
+    console.log("Mail sent:", result.messageId);
     return true;
   } catch (err) {
-    console.log("error occurs in send mail:", err);
+    console.error("Mail error:", err.message);
     return false;
   }
 }
 
 module.exports = sendMail;
-
